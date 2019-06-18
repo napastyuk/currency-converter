@@ -7,6 +7,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
     deferredPrompt = e;
 });
 
+let installButton = document.querySelector("#installBtn");
+
+installButton.addEventListener('click', install);
+
 async function install() {
     if (deferredPrompt) {
         deferredPrompt.prompt();
