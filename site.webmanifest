@@ -1,0 +1,16 @@
+{
+  "name": "Adwirk тестовое",
+  "short_name": "Adwirk-test",
+  "description": "Конвертер валют для Adwirk",
+  "lang": "ru-RU",
+  "orientation": "any",
+  "icons": [{
+    "src": "icon.png",
+    "type": "image/png",
+    "sizes": "192x192"
+  }],
+  "start_url": "./?utm_source=web_app_manifest",
+  "display": "standalone",
+  "background_color": "#ff0033",
+  "theme_color": "#ff0033"
+}
