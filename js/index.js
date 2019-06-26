@@ -82,7 +82,7 @@ function chaingeInputCurrency() {
 }
 
 function recalculateInputValues() {
-    console.log('recalculateInputValues' + event.target.value);
+    console.log('пересчитывам все поля отностельно ' + event.target.dataset.curCode);
 
     let chaingedCurrencyEl = event.target;  //инпут который изменили
     let chaingedCurrencyValue = parseFloat(chaingedCurrencyEl.value); //значение инпута который изменили
@@ -110,7 +110,7 @@ function recalculateInputValues() {
 }
 
 function recalculateAllCurrency() {
-    console.log('recalculateAllCurrency');
+    console.log('пересчитаем все инпуты');
     let allCurrencyInputs = document.querySelectorAll("[data-cur-code]"); //коллекция всех инпутов
     let defaultCurrencyValue = document.getElementById('finalCurrency').value; //значение рублевого инпута
 
@@ -127,7 +127,7 @@ function checkStorage() {
     //перед отправкой проверить что в сторадже уже не лежит сегодняший курс
     if (localStorage.getItem('lastGettedRatesDate') == new Date().getDate()) {
         // если в localStorage актуальные данные достаем курс локально
-        console.log('достаем курс локально');
+        console.log('достаем курсы валют локально');
         getFromLocal();
     } else if (localStorage.getItem('lastGettedRatesDate') != new Date().getDate() ||
         localStorage.getItem('lastGettedRatesDate') === null) {
@@ -138,6 +138,7 @@ function checkStorage() {
 }
 
 function sendXMLHttpRequest(url) {
+    console.log("отправляем запрос на " + url);
     let xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.onreadystatechange = function () {
