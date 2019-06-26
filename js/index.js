@@ -1,8 +1,8 @@
 //1. сделать запрос на https://www.cbr-xml-daily.ru/daily.xml и получить xml
-    //c https://www.cbr.ru/scripts/XML_daily.asp данные получить сложнее по нескольким причинам
-    //1- у них не настроена CORS, поэтому запросы из браузера блочатся самим браузером,
-    //2- документ у них отдается в кодировке windows-1251 , что тянет за собой библиотеку для перекодировки
-    //3- формат отдаваемого документа xml, что в приципе решаемо, но на cbr-xml-daily есть возможность переключить на json
+//c https://www.cbr.ru/scripts/XML_daily.asp данные получить сложнее по нескольким причинам
+//1- у них не настроена CORS, поэтому запросы из браузера блочатся самим браузером,
+//2- документ у них отдается в кодировке windows-1251 , что тянет за собой библиотеку для перекодировки
+//3- формат отдаваемого документа xml, что в приципе решаемо, но на cbr-xml-daily есть возможность переключить на json
 //2. преобразовать данные из xml в js объект
 //3. cохранить его в servise worker
 //4. вывести ofline калькулятор валют
@@ -12,9 +12,11 @@
 // }
 
 const CBRF_COURSEAPI_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
-let newRates = "";
+let newRates = {}; //Объект со всем курсами
 const rootId = "currencyCalc";
 let currencyCount = "2";
+let defaultCurrencyCode = "RUB";
+let defaultСalculatedCurrency = "USD";
 
 function init() {
     let targetEl = document.getElementById(rootId);
@@ -22,29 +24,103 @@ function init() {
         console.error("элемент с id currencyCalc не найден");
         return
     } else
-        generateCalcView(targetEl);
+        checkStorage()
+    generateCalcView(targetEl);
 }
 
-function generateCalcView() {    
+function generateCalcView() {
+    // console.log(newRates.Valute.USD.Value * 50);   
     let rootEl = document.getElementById(rootId);
     let formEl = document.createElement('form');
     for (let i = 1; i <= currencyCount; i++) {
-        let labelEl = document.createElement('label');
-        labelEl.setAttribute('for',"currency-"+i);
-        labelEl.innerText = "currency-" + i;
-        formEl.appendChild(labelEl);
-        let inputEl = document.createElement('input');
-        inputEl.setAttribute('type', "text");
-        formEl.appendChild(inputEl);
-        insertBRElement(formEl);
+        addNewCurrency(formEl);
     }
+    addFinalCurrency(formEl);
     rootEl.appendChild(formEl);
-    checkStorage();
 }
 
-function insertBRElement(containerEl) {
+function addNewCurrency(containerEl) {
+    containerEl.appendChild(generateCurrencySelect(defaultСalculatedCurrency));
+    let inputEl = document.createElement('input');
+    inputEl.setAttribute('type', 'number');
+    inputEl.dataset.curCode = defaultСalculatedCurrency;
+    inputEl.value = "0";
+    inputEl.addEventListener('input', recalculateInputValues);
+    containerEl.appendChild(inputEl);
     let brEl = document.createElement('br');
     containerEl.appendChild(brEl);
+}
+
+function addFinalCurrency(containerEl) {
+    //последняя валюта в списке
+    let labelEl = document.createElement('span');
+    labelEl.innerText = "Российский рубль";
+    containerEl.appendChild(labelEl);
+    let inputEl = document.createElement('input');
+    inputEl.setAttribute('type', 'number');
+    inputEl.setAttribute('id', 'finalCurrency');
+    inputEl.dataset.curCode = defaultCurrencyCode;
+    inputEl.value = "0";
+    inputEl.addEventListener('input', recalculateInputValues);
+    containerEl.appendChild(inputEl);
+}
+
+function generateCurrencySelect(selectedValue) {
+    let selectEl = document.createElement('select');
+    for (let key in newRates.Valute) {
+        let optionEl = new Option(newRates.Valute[key].Name, newRates.Valute[key].CharCode);
+        selectEl.add(optionEl);
+        if (newRates.Valute[key].CharCode == selectedValue) optionEl.selected = true;
+    }
+    selectEl.addEventListener('input', chaingeInputCurrency);
+    return selectEl;
+}
+
+function chaingeInputCurrency() {
+    event.target.nextElementSibling.dataset.curCode = event.target.value;
+    recalculateAllCurrency();
+}
+
+function recalculateInputValues() {
+    console.log('recalculateInputValues' + event.target.value);
+
+    let chaingedCurrencyEl = event.target;  //инпут который изменили
+    let chaingedCurrencyValue = parseFloat(chaingedCurrencyEl.value); //значение инпута который изменили
+    let chaingedCurrencyCode = chaingedCurrencyEl.dataset.curCode; //валюта инпута который изменили
+
+    if (chaingedCurrencyValue == 0 || isNaN(chaingedCurrencyValue)) {
+        console.log('значение равно 0');
+        return;
+    }   
+    
+    //так как у нас курсы валют относительно рубля, отдельно считаем изменение рубля и остальных валют
+    if (chaingedCurrencyCode == defaultCurrencyCode) {
+        //пройдемся по всем валютам пересчитаем значение в них опираясь на значение в рублёвом инпуте
+        console.log('изменили значение рубля');
+        recalculateAllCurrency();
+    } else {
+        //если изменили валюту надо изменить рублевый инпут
+        console.log('изменили значение валюты');
+        //в рублевый инпут присвоить числов в валюте * курс этой валюты
+        let courseOfChaingedCurrency = newRates.Valute[event.target.dataset.curCode].Value;
+        document.getElementById('finalCurrency').value = chaingedCurrencyValue * courseOfChaingedCurrency;
+        //после того как изменили рублевый инпут надо пересчитать значение в остальных полях если валют больше чем одна
+        recalculateAllCurrency();
+    }
+}
+
+function recalculateAllCurrency() {
+    console.log('recalculateAllCurrency');
+    let allCurrencyInputs = document.querySelectorAll("[data-cur-code]"); //коллекция всех инпутов
+    let defaultCurrencyValue = document.getElementById('finalCurrency').value; //значение рублевого инпута
+
+    for (let i = 0; i < allCurrencyInputs.length; i++) {
+        //пропускаем рублевый инпут, так как на основе него будем вычислять остальные
+        if (allCurrencyInputs[i].dataset.curCode == defaultCurrencyCode) break;
+        //ищем курс валют от i-го инпута
+        let courseOfСurrentInput = newRates.Valute[allCurrencyInputs[i].dataset.curCode].Value;
+        allCurrencyInputs[i].value = defaultCurrencyValue / courseOfСurrentInput;
+    }
 }
 
 function checkStorage() {
@@ -59,11 +135,10 @@ function checkStorage() {
         sendXMLHttpRequest(CBRF_COURSEAPI_URL);
         console.log('обновляем курсы валют по сети');
     };
-    console.log(newRates.Valute.USD.Value * 50);
 }
 
 function sendXMLHttpRequest(url) {
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.onreadystatechange = function () {
         // console.log("this.readyState " + this.readyState)
