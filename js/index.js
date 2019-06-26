@@ -7,6 +7,10 @@
 //3. cохранить его в servise worker
 //4. вывести ofline калькулятор валют
 
+// if (navigator.serviceWorker) {
+//     navigator.serviceWorker.register('/serviceworker.js');
+// }
+
 const CBRF_COURSEAPI_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
 let newRates = "";
 
@@ -37,19 +41,21 @@ function getFromLocal() {
     newRates = JSON.parse(localStorage.getItem("lastGettedRates"));
 }
 
-
 function checkStorage() {
     //перед отправкой проверить что в сторадже уже не лежит сегодняший курс
     if (localStorage.getItem('lastGettedRatesDate') == new Date().getDate()) {
+        // если в localStorage актуальные данные достаем курс локально
+        console.log('достаем курс локально');
         getFromLocal();
-    } else if (localStorage.getItem('lastGettedRatesDate') != new Date().getDate() &&
-        localStorage.getItem('lastGettedRatesDate') === null) {
-        //если localStorage пустой или просрочен
+    } else if (localStorage.getItem('lastGettedRatesDate') != new Date().getDate() ||
+               localStorage.getItem('lastGettedRatesDate') === null) {
+        //если localStorage пустой или просрочен обновляем курсы валют по сети
         sendXMLHttpRequest(CBRF_COURSEAPI_URL);
+        console.log('обновляем курсы валют по сети');
     };
+    console.log(newRates.Valute.USD.Value * 50);
 }
 
 checkStorage();
 
-console.log(newRates.Valute.USD.Value * 50);
-debugger;
+
