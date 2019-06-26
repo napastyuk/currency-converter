@@ -13,6 +13,54 @@
 
 const CBRF_COURSEAPI_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
 let newRates = "";
+const rootId = "currencyCalc";
+let currencyCount = "2";
+
+function init() {
+    let targetEl = document.getElementById(rootId);
+    if (!targetEl) {
+        console.error("элемент с id currencyCalc не найден");
+        return
+    } else
+        generateCalcView(targetEl);
+}
+
+function generateCalcView() {    
+    let rootEl = document.getElementById(rootId);
+    let formEl = document.createElement('form');
+    for (let i = 1; i <= currencyCount; i++) {
+        let labelEl = document.createElement('label');
+        labelEl.setAttribute('for',"currency-"+i);
+        labelEl.innerText = "currency-" + i;
+        formEl.appendChild(labelEl);
+        let inputEl = document.createElement('input');
+        inputEl.setAttribute('type', "text");
+        formEl.appendChild(inputEl);
+        insertBRElement(formEl);
+    }
+    rootEl.appendChild(formEl);
+    checkStorage();
+}
+
+function insertBRElement(containerEl) {
+    let brEl = document.createElement('br');
+    containerEl.appendChild(brEl);
+}
+
+function checkStorage() {
+    //перед отправкой проверить что в сторадже уже не лежит сегодняший курс
+    if (localStorage.getItem('lastGettedRatesDate') == new Date().getDate()) {
+        // если в localStorage актуальные данные достаем курс локально
+        console.log('достаем курс локально');
+        getFromLocal();
+    } else if (localStorage.getItem('lastGettedRatesDate') != new Date().getDate() ||
+        localStorage.getItem('lastGettedRatesDate') === null) {
+        //если localStorage пустой или просрочен обновляем курсы валют по сети
+        sendXMLHttpRequest(CBRF_COURSEAPI_URL);
+        console.log('обновляем курсы валют по сети');
+    };
+    console.log(newRates.Valute.USD.Value * 50);
+}
 
 function sendXMLHttpRequest(url) {
     var xhr = new XMLHttpRequest();
@@ -41,21 +89,7 @@ function getFromLocal() {
     newRates = JSON.parse(localStorage.getItem("lastGettedRates"));
 }
 
-function checkStorage() {
-    //перед отправкой проверить что в сторадже уже не лежит сегодняший курс
-    if (localStorage.getItem('lastGettedRatesDate') == new Date().getDate()) {
-        // если в localStorage актуальные данные достаем курс локально
-        console.log('достаем курс локально');
-        getFromLocal();
-    } else if (localStorage.getItem('lastGettedRatesDate') != new Date().getDate() ||
-               localStorage.getItem('lastGettedRatesDate') === null) {
-        //если localStorage пустой или просрочен обновляем курсы валют по сети
-        sendXMLHttpRequest(CBRF_COURSEAPI_URL);
-        console.log('обновляем курсы валют по сети');
-    };
-    console.log(newRates.Valute.USD.Value * 50);
-}
+init();
 
-checkStorage();
 
 
